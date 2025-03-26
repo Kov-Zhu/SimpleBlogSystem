@@ -9,7 +9,7 @@
     "test": "mocha backend/test/*.test.js"
   },
   "devDependencies": {
-    "chai": "^5.1.2",
+    "chai": "^5.2.0",
     "concurrently": "^7.0.0",
     "mocha": "^11.0.1"
   },
