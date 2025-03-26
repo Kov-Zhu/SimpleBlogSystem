@@ -26,11 +26,12 @@ const BlogForm = ({ blogs, setBlogs, editingBlog, setEditingBlog }) => {
         try {
             const blogData = {
                 ...formData,
-                tags: formData.tags.split(',').map(tag => tag.trim()), // 转换成数组
+                tags: formData.tags.split('#').map(tag => tag.trim()).filter(tag => tag !== '')
             };
 
             let response;
             if (editingBlog) {
+                console.log(editingBlog._id);
                 response = await axiosInstance.put(`/api/blogs/${editingBlog._id}`, blogData, {
                     headers: { Authorization: `Bearer ${user.token}` },
                 });
@@ -45,8 +46,9 @@ const BlogForm = ({ blogs, setBlogs, editingBlog, setEditingBlog }) => {
             setEditingBlog(null);
             setFormData({ title: '', content: '', tags: '', status: 'draft' });
         } catch (error) {
-            alert('Failed to save blog.');
-        }
+            console.error('Operation failed:', error.response?.data || error.message);
+            alert(`Save failed: ${error.response?.data?.message || error.message}`);
+          }
     };
 
     return (
