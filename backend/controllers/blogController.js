@@ -1,3 +1,4 @@
+const { expect } = require('chai');
 const Blog = require('../models/Blog');
 const Comment = require('../models/Comment');
 
@@ -34,6 +35,29 @@ const addBlog = async (req, res) => {
     }
 };
 
+const editBlog = async (req, res) => {
+    try {
+        const blog = await Blog.findById(req.params.id);
+        console.log(req.user);
+        console.log(blog.author.toString());
+
+        // Verify whether the user is the author
+        if (blog.author.toString() !== req.user.id) {
+            return res.status(403).json({ message: 'You do not have permission to edit this blog.' });
+        }
+
+        const updatedBlog = await Blog.findByIdAndUpdate(
+            req.params.id,
+            { $set: req.body },
+            { new: true }
+        ).populate('author', 'name email').populate('comments'); // Fill in the comment;
+
+        res.status(200).json(updatedBlog);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
 const createComment = async (req, res) => {
     try {
         const { blogId, authorId, content } = req.body;
@@ -53,4 +77,4 @@ const createComment = async (req, res) => {
 };
 
 
-module.exports = { getBlogs, addBlog, createComment };
+module.exports = { getBlogs, addBlog, editBlog, createComment };
