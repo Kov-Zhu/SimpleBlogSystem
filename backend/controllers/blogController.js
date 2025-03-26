@@ -4,9 +4,19 @@ const Comment = require('../models/Comment');
 
 const getBlogs = async (req, res) => {
     try {
-        const blogs = await Blog.find({ status: 'published' }) // Only retrieve published blogs
-            .populate('author', 'name email') // Fill in author information
-            .populate('comments'); // Fill in the comment
+        const blogs = await Blog.find({ status: 'published' })
+            .populate('author', 'name email')
+            .populate({
+                path: 'comments',
+                options: {
+                    limit: 3, // Default display of 3 latest comments
+                    sort: { createdAt: -1 }
+                },
+                populate: {
+                    path: 'author',
+                    select: 'name'
+                }
+            }).lean();
 
         res.json(blogs);
     } catch (error) {
@@ -74,23 +84,48 @@ const deleteBlog = async (req, res) => {
     }
 }
 
-const createComment = async (req, res) => {
+const createBlogComment = async (req, res) => {
     try {
-        const { blogId, authorId, content } = req.body;
+        const { blogId, content } = req.body;
 
         const newComment = {
             blog: blogId,
-            author: authorId,
-            content: content,
+            author: req.user.id,
+            content
         };
 
-        await Comment.create(newComment);
+        const createdComment = await Comment.create(newComment);
 
-        res.status(201).json({ message: 'Comment created successfully', comment: newComment });
+        res.status(201).json(createdComment);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 };
 
+const getBlogComments = async (req, res) => {
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 3;
+        const skip = (page - 1) * limit;
 
-module.exports = { getBlogs, addBlog, editBlog, deleteBlog, createComment };
+        const comments = await Comment.find({ blog: req.params.blogId })
+            .populate('author', 'name')
+            .skip(skip)
+            .limit(limit)
+            .sort({ createdAt: -1 });
+
+        const total = await Comment.countDocuments({ blog: req.params.blogId });
+
+        res.json({
+            comments,
+            total,
+            page,
+            pages: Math.ceil(total / limit) // total pages of comments
+        });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
+
+module.exports = { getBlogs, addBlog, editBlog, deleteBlog, createBlogComment, getBlogComments };
