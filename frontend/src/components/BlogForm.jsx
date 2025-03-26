@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import axiosInstance from '../axiosConfig';
 
 const BlogForm = ({ blogs, setBlogs, editingBlog, setEditingBlog }) => {
-    const { user } = useAuth(); // 获取用户信息
+    const { user } = useAuth(); 
     const [formData, setFormData] = useState({ title: '', content: '', tags: '', status: 'draft' });
 
     useEffect(() => {
@@ -11,7 +11,7 @@ const BlogForm = ({ blogs, setBlogs, editingBlog, setEditingBlog }) => {
             setFormData({
                 title: editingBlog.title,
                 content: editingBlog.content,
-                tags: editingBlog.tags.join(', '), // 以逗号分隔的字符串
+                tags: editingBlog.tags.join(', '),
                 status: editingBlog.status,
             });
         } else {

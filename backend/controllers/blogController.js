@@ -25,9 +25,9 @@ const addBlog = async (req, res) => {
             author: req.user.id // Get the current user ID from the request
         };
 
-        await Blog.create(newBlog);
+        const createdBlog = await Blog.create(newBlog);
 
-        res.status(201).json({ message: 'Blog created successfully', blog: newBlog });
+        res.status(201).json(createdBlog);
 
     } catch (error) {
         res.status(500).json({ message: error.message });

@@ -49,6 +49,7 @@ describe('Blog API Tests', () => {
 
       // Use for expected response
       const expectedBlog = {
+        _id: createdBlog._id,
         ...req.body,
         author: req.user.id
       }
@@ -63,6 +64,7 @@ describe('Blog API Tests', () => {
 
       // Call addBlog function
       await addBlog(req, res);
+      console.log(res.json.getCalls()[0]);
 
       // Assert that Blog.create was called with correct arguments
       expect(createBlogStub.calledOnceWith({
@@ -75,7 +77,7 @@ describe('Blog API Tests', () => {
 
       // Assert the response status and json content
       expect(res.status.calledWith(201)).to.be.true;
-      expect(res.json.calledWithMatch({ message: "Blog created successfully", blog: expectedBlog })).to.be.true;
+      expect(res.json.calledWithMatch(expectedBlog)).to.be.true;
 
 
     });
