@@ -12,6 +12,7 @@ const BlogList = ({ blogs, setBlogs, setEditingBlog }) => {
         headers: { Authorization: `Bearer ${user.token}` },
       });
       setBlogs(blogs.filter(blog => blog._id !== id));
+      alert('Blog deleted successfully.');
     } catch (error) {
       alert('Failed to delete blog.');
     }

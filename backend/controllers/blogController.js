@@ -38,8 +38,6 @@ const addBlog = async (req, res) => {
 const editBlog = async (req, res) => {
     try {
         const blog = await Blog.findById(req.params.id);
-        console.log(req.user);
-        console.log(blog.author.toString());
 
         // Verify whether the user is the author
         if (blog.author.toString() !== req.user.id) {
@@ -57,6 +55,24 @@ const editBlog = async (req, res) => {
         res.status(500).json({ message: err.message });
     }
 };
+
+const deleteBlog = async (req, res) => {
+    console.log("Blog deleting");
+    try {
+        const blog = await Blog.findById(req.params.id);
+
+        // Verify whether the user is the author
+        if (blog.author.toString() !== req.user.id) {
+            return res.status(403).json({ message: 'You do not have permission to delete this blog.' });
+        }
+
+        await Blog.findByIdAndDelete(req.params.id);
+
+        res.status(200).json({ message: 'Blog deleted successfully' });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+}
 
 const createComment = async (req, res) => {
     try {
@@ -77,4 +93,4 @@ const createComment = async (req, res) => {
 };
 
 
-module.exports = { getBlogs, addBlog, editBlog, createComment };
+module.exports = { getBlogs, addBlog, editBlog, deleteBlog, createComment };

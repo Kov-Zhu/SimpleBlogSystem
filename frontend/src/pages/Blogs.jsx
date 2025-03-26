@@ -5,18 +5,15 @@ import BlogList from '../components/BlogList';
 import { useAuth } from '../context/AuthContext';
 
 const Blogs = () => {
-    const { user } = useAuth(); // 获取用户信息
+    const { user } = useAuth();
     const [blogs, setBlogs] = useState([]);
     const [editingBlog, setEditingBlog] = useState(null);
 
-    // 获取博客数据
     useEffect(() => {
         const fetchBlogs = async () => {
-            if (!user) return; // 用户未登录时不执行
-
             try {
                 const response = await axiosInstance.get('/api/blogs', {
-                    headers: { Authorization: `Bearer ${user.token}` },
+                    headers: {},
                 });
                 console.log('Fetched Blogs:', response.data);
                 setBlogs(response.data);
@@ -26,7 +23,7 @@ const Blogs = () => {
         };
 
         fetchBlogs();
-    }, [user]); // 依赖 user，确保登录后才请求数据
+    }, [user]);
 
     return (
         <div className="container mx-auto p-6">
@@ -41,7 +38,9 @@ const Blogs = () => {
                     <BlogList blogs={blogs} setBlogs={setBlogs} setEditingBlog={setEditingBlog} />
                 </>
             ) : (
-                <p className="text-center text-red-500">Please log in to manage blogs.</p>
+                <>
+                    <BlogList blogs={blogs} setBlogs={setBlogs} setEditingBlog={setEditingBlog} />
+                </>
             )}
         </div>
     );
