@@ -54,7 +54,7 @@ jobs:
         -   name: Install Backend Dependencies
             working-directory: ./backend
             run: |
-                nvm install 22
+                node --version
                 npm install -g yarn
                 yarn install
 
