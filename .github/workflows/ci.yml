@@ -15,7 +15,7 @@ jobs:
 
         strategy:
             matrix:
-                node-version: [16] # Test on multiple Node.js versions
+                node-version: [22] # Test on multiple Node.js versions
 
 
         environment: MONGO_URI
@@ -42,15 +42,22 @@ jobs:
                 
         -   run: pm2 stop all
 
+        # Install dependencies for backend
+        -   name: Install Backend Dependencies
+            working-directory: ./backend
+            run: | 
+                npm install --global yarn
+                yarn --version
+                yarn install
+    
         # Install dependencies for frontend
         -   name: Install Frontend Dependencies
             working-directory: ./frontend
-            run: npm install
-
-        # Install dependencies for backend
-        -   name: Install Frontend Dependencies
-            working-directory: ./backend
-            run: npm install
+            run: |
+                df -h
+                sudo rm -rf ./build
+                yarn install
+                yarn run build
 
         -   name: Install dependencies
             run: npm install
@@ -69,6 +76,7 @@ jobs:
                 cd ./backend
                 touch .env
                 echo "${{ secrets.PROD }}" > .env
+                
         -   run: pm2 start all
 
         -   run: pm2 restart all
