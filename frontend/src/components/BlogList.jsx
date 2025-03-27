@@ -59,7 +59,6 @@ const BlogList = ({ blogs, setBlogs, setEditingBlog, pagination, setPagination})
         }
     };
 
-    // 处理新增评论
     const handleNewComment = (blogId, newComment) => {
         setBlogs(blogs.map(blog => {
             if (blog._id === blogId) {
@@ -96,7 +95,7 @@ const BlogList = ({ blogs, setBlogs, setEditingBlog, pagination, setPagination})
                         </button>
                     </div>
                     <div className="mt-4">
-                        <h4 className="font-semibold mb-2">Comment ({blog.comments?.length || 0})</h4>
+                        <h4 className="font-semibold mb-2">Comment</h4>
 
                         {/* List of comments */}
                         {blog.comments?.map(comment => (

@@ -9,8 +9,16 @@ on:
             - main
 
 jobs:
-    build:
-        runs-on: ubuntu-latest
+    test:
+        name: Run Tests
+        runs-on: self-hosted
+
+        strategy:
+            matrix:
+                node-version: [16] # Test on multiple Node.js versions
+
+
+        environment: MONGO_URI
 
         steps:
         -   name: Checkout Code
@@ -19,7 +27,20 @@ jobs:
         -   name: Set up Node.js
             uses: actions/setup-node@v3
             with:
-                node-version: 16
+                node-version: ${{ matrix.node-version }}
+        
+        -   name: Print Env Secret
+
+            env:
+                MONGO_URI: ${{ secrets.MONGO_URI }}
+                JWT_SECRET: ${{ secrets.JWT_SECRET }}
+                PORT: ${{ secrets.PORT }}
+            run: | 
+                echo "Secret 1 is: $MONGO_URI"
+                echo "Secret 2 is: $JWT_SECRET"
+                echo "Secret 3 is: $PORT"
+                
+        -   run: pm2 stop all
 
         # Install dependencies for frontend
         -   name: Install Frontend Dependencies
@@ -34,6 +55,20 @@ jobs:
         -   name: Install dependencies
             run: npm install
 
-        -   name: Run backend tests
+        # Run backend tests
+        -   name: Run Backend Tests
+            env:
+                MONGO_URI: ${{ secrets.MONGO_URI }}
+                JWT_SECRET: ${{ secrets.JWT_SECRET }}
+                PORT: ${{ secrets.PORT }}
             working-directory: ./backend
             run: npm test
+
+        -   run: npm ci
+        -   run: | 
+                cd ./backend
+                touch .env
+                echo "${{ secrets.PROD }}" > .env
+        -   run: pm2 start all
+
+        -   run: pm2 restart all

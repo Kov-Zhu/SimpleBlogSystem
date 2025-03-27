@@ -15,6 +15,7 @@ const Blogs = () => {
             try {
                 const response = await axiosInstance.get('/api/blogs');
                 const blogsData = response.data;
+                console.log(blogsData);
 
                 // Initialize pagination state
                 const initialPagination = {};

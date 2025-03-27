@@ -34,7 +34,7 @@ describe('Blog API Tests', () => {
     commentCreateStub.restore();
   });
 
-  /*** 1. 测试 getBlogs() 获取已发布的博客 ***/
+  /*** 1. Test getBlogs() to get published blogs ***/
   it('should return all published blogs with populated fields', async () => {
     const blogId = new mongoose.Types.ObjectId();
     const userId = new mongoose.Types.ObjectId();
@@ -70,7 +70,7 @@ describe('Blog API Tests', () => {
     expect(res.json.calledWith(blogs)).to.be.true;
   });
 
-  /*** 2. 测试 addBlog() 添加博客 ***/
+  /*** 2. Test addBlog() to add a blog ***/
   it('should create a new blog successfully', async () => {
     const req = {
       user: { id: new mongoose.Types.ObjectId() },
@@ -110,12 +110,11 @@ describe('Blog API Tests', () => {
     expect(res.json.calledWith(createdBlog)).to.be.true;
   });
 
-  /*** 3. 测试 editBlog() 编辑博客 ***/
+  /*** 3. Test editBlog() to edit blog ***/
   it('should update the blog when the user is the author', async () => {
     const userId = new mongoose.Types.ObjectId().toString();
     const blogId = new mongoose.Types.ObjectId().toString();
 
-    // 模拟博客
     const existingBlog = {
       _id: blogId,
       title: "Old Title",
@@ -131,10 +130,10 @@ describe('Blog API Tests', () => {
       toObject: () => updatedBlog
     };
 
-    // Stub `findById` 返回旧博客
+    // Stub `findById` returns old blog
     findByIdStub.resolves(existingBlog);
 
-    // Stub `findByIdAndUpdate` 模拟返回 Mongoose Query
+    // Stub `findByIdAndUpdate` mock return Mongoose Query
     findByIdAndUpdateStub.returns({
       populate: sinon.stub().returns({
         populate: sinon.stub().returns({
@@ -154,16 +153,14 @@ describe('Blog API Tests', () => {
       json: sinon.spy()
     };
 
-    // 调用 `editBlog`
     await editBlog(req, res);
 
-    // 验证返回状态码
     expect(res.status.calledWith(200)).to.be.true;
   });
 
 
 
-  /*** 4. 测试 deleteBlog() 删除博客 ***/
+  /*** 4. Test deleteBlog()  ***/
   it('should delete a blog when the user is the author', async () => {
     const blogId = new mongoose.Types.ObjectId();
     const userId = new mongoose.Types.ObjectId();
@@ -191,7 +188,7 @@ describe('Blog API Tests', () => {
     expect(res.json.calledWith({ message: 'Blog deleted successfully' })).to.be.true;
   });
 
-  /*** 5. 测试 createBlogComment() 添加评论 ***/
+  /*** 5. Test createBlogComment() Add comments ***/
   it('should create a comment for a blog', async () => {
     const blogId = new mongoose.Types.ObjectId();
     const userId = new mongoose.Types.ObjectId();
