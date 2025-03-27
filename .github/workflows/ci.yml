@@ -42,22 +42,15 @@ jobs:
                 
         -   run: pm2 stop all
 
-        # Install dependencies for backend
-        -   name: Install Backend Dependencies
-            working-directory: ./backend
-            run: | 
-                npm install --global yarn
-                yarn --version
-                yarn install
-    
         # Install dependencies for frontend
         -   name: Install Frontend Dependencies
             working-directory: ./frontend
-            run: |
-                df -h
-                sudo rm -rf ./build
-                yarn install
-                yarn run build
+            run: npm install
+
+        # Install dependencies for backend
+        -   name: Install Frontend Dependencies
+            working-directory: ./backend
+            run: npm install
 
         -   name: Install dependencies
             run: npm install
@@ -76,7 +69,6 @@ jobs:
                 cd ./backend
                 touch .env
                 echo "${{ secrets.PROD }}" > .env
-                
         -   run: pm2 start all
 
         -   run: pm2 restart all
