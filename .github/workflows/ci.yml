@@ -28,6 +28,14 @@ jobs:
             uses: actions/setup-node@v3
             with:
                 node-version: ${{ matrix.node-version }}
+
+        -   name: Cache npm dependencies
+            uses: actions/cache@v3
+            with:
+                path: ~/.npm
+                key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}
+                restore-keys: |
+                            ${{ runner.os }}-npm-
         
         -   name: Print Env Secret
 
@@ -42,18 +50,22 @@ jobs:
                 
         -   run: pm2 stop all
 
+        # Install dependencies for backend
+        -   name: Install Backend Dependencies
+            working-directory: ./backend
+            run: |
+                nvm install 22
+                npm install -g yarn
+                yarn install
+
         # Install dependencies for frontend
         -   name: Install Frontend Dependencies
             working-directory: ./frontend
-            run: npm install
-
-        # Install dependencies for backend
-        -   name: Install Frontend Dependencies
-            working-directory: ./backend
-            run: npm install
-
-        -   name: Install dependencies
-            run: npm install
+            run: |
+                df -h
+                sudo rm -rf ./build
+                yarn install
+                yarn run build
 
         # Run backend tests
         -   name: Run Backend Tests
