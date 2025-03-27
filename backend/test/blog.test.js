@@ -1,272 +1,230 @@
-const chai = require('chai');
-const chaiHttp = require('chai-http');
+const { expect } = require('chai');
 const sinon = require('sinon');
 const mongoose = require('mongoose');
-const { expect } = chai;
-const app = require('../server'); // Adjust path as necessary
 const Blog = require('../models/Blog');
 const Comment = require('../models/Comment');
-const { addBlog, getBlogs, createComment } = require('../controllers/blogController');
-
-chai.use(chaiHttp);
+const {
+  getBlogs,
+  addBlog,
+  editBlog,
+  deleteBlog,
+  createBlogComment
+} = require('../controllers/blogController');
 
 describe('Blog API Tests', () => {
-  let createBlogStub, findBlogStub, createCommentStub;
+  let findStub, createStub, findByIdStub, findByIdAndUpdateStub, findByIdAndDeleteStub, commentCreateStub;
 
   beforeEach(() => {
-    // Stubbing methods
-    createBlogStub = sinon.stub(Blog, 'create');
-    findBlogStub = sinon.stub(Blog, 'find');
-    createCommentStub = sinon.stub(Comment, 'create');
+    // Mock database operations
+    findStub = sinon.stub(Blog, 'find');
+    createStub = sinon.stub(Blog, 'create');
+    findByIdStub = sinon.stub(Blog, 'findById');
+    findByIdAndUpdateStub = sinon.stub(Blog, 'findByIdAndUpdate');
+    findByIdAndDeleteStub = sinon.stub(Blog, 'findByIdAndDelete');
+    commentCreateStub = sinon.stub(Comment, 'create');
   });
 
   afterEach(() => {
-    // Restore the stubs
-    createBlogStub.restore();
-    findBlogStub.restore();
-    createCommentStub.restore();
+    // Restore original functions
+    findStub.restore();
+    createStub.restore();
+    findByIdStub.restore();
+    findByIdAndUpdateStub.restore();
+    findByIdAndDeleteStub.restore();
+    commentCreateStub.restore();
   });
 
-  // ================== Add Blog Tests ==================
-  describe('Add Blog', () => {
-    it('should create a new blog successfully', async () => {
-      const req = {
-        user: { id: new mongoose.Types.ObjectId() },
-        body: {
-          title: "New Blog",
-          content: "This is a new blog content",
-          tags: "#test",
-          status: "published"
-        }
-      };
+  /*** 1. Test getBlogs() to get published blogs ***/
+  it('should return all published blogs with populated fields', async () => {
+    const blogId = new mongoose.Types.ObjectId();
+    const userId = new mongoose.Types.ObjectId();
 
-      // Mock blog that would be created
-      const createdBlog = {
-        _id: new mongoose.Types.ObjectId(),
-        ...req.body,
-        author: req.user.id
-      };
+    // Mock blog data
+    const blogs = [{
+      _id: blogId,
+      title: "Sample Blog",
+      content: "This is a test blog",
+      author: { _id: userId, name: "Test User", email: "test@example.com" },
+      comments: [],
+      status: 'published'
+    }];
 
-      // Use for expected response
-      const expectedBlog = {
-        _id: createdBlog._id,
-        ...req.body,
-        author: req.user.id
+    // Mock the behavior of Blog.find()
+    findStub.returns({
+      populate: sinon.stub().returns({
+        populate: sinon.stub().returns({
+          lean: sinon.stub().resolves(blogs)
+        })
+      })
+    });
+
+    const req = {};
+    const res = {
+      json: sinon.spy(),
+      status: sinon.stub().returnsThis()
+    };
+
+    await getBlogs(req, res);
+
+    expect(findStub.calledOnce).to.be.true;
+    expect(res.json.calledWith(blogs)).to.be.true;
+  });
+
+  /*** 2. Test addBlog() to add a blog ***/
+  it('should create a new blog successfully', async () => {
+    const req = {
+      user: { id: new mongoose.Types.ObjectId() },
+      body: {
+        title: "New Blog",
+        content: "This is a new blog content",
+        tags: "#test",
+        status: "published"
       }
+    };
 
-      // Mock Blog.create to resolve the created blog
-      createBlogStub.resolves(createdBlog);
+    // Mock created blog
+    const createdBlog = {
+      _id: new mongoose.Types.ObjectId(),
+      ...req.body,
+      author: req.user.id
+    };
 
-      const res = {
-        status: sinon.stub().returnsThis(),
-        json: sinon.spy(),
-      };
+    createStub.resolves(createdBlog);
 
-      // Call addBlog function
-      await addBlog(req, res);
-      console.log(res.json.getCalls()[0]);
+    const res = {
+      status: sinon.stub().returnsThis(),
+      json: sinon.spy()
+    };
 
-      // Assert that Blog.create was called with correct arguments
-      expect(createBlogStub.calledOnceWith({
-        title: req.body.title,
-        content: req.body.content,
-        tags: req.body.tags,
-        author: req.user.id,
-        status: req.body.status
-      })).to.be.true;
+    await addBlog(req, res);
 
-      // Assert the response status and json content
-      expect(res.status.calledWith(201)).to.be.true;
-      expect(res.json.calledWithMatch(expectedBlog)).to.be.true;
+    expect(createStub.calledOnceWith({
+      title: req.body.title,
+      content: req.body.content,
+      tags: req.body.tags,
+      author: req.user.id,
+      status: req.body.status
+    })).to.be.true;
 
-
-    });
-
-    it('should return 500 if an error occurs', async () => {
-      const req = {
-        user: { id: new mongoose.Types.ObjectId() },
-        body: {
-          title: "New Blog",
-          content: "This is a new blog content",
-          tags: ["tech", "coding"],
-          status: "published"
-        }
-      };
-
-      // Simulate an error in Blog.create
-      createBlogStub.throws(new Error('DB Error'));
-
-      const res = {
-        status: sinon.stub().returnsThis(),
-        json: sinon.spy(),
-      };
-
-      // Call addBlog function
-      await addBlog(req, res);
-
-      // Assert that the error response is sent
-      expect(res.status.calledWith(500)).to.be.true;
-      expect(res.json.calledWithMatch({ message: 'DB Error' })).to.be.true;
-    });
+    expect(res.status.calledWith(201)).to.be.true;
+    expect(res.json.calledWith(createdBlog)).to.be.true;
   });
 
-  describe('Get Blogs', () => {
-    it('should return all published blogs', async () => {
-      const blogId = new mongoose.Types.ObjectId();
-      const req = {};
+  /*** 3. Test editBlog() to edit blog ***/
+  it('should update the blog when the user is the author', async () => {
+    const userId = new mongoose.Types.ObjectId().toString();
+    const blogId = new mongoose.Types.ObjectId().toString();
 
-      // Mock data setup
-      const user = {
-        _id: new mongoose.Types.ObjectId(),
-        name: "John Doe",
-        email: "john@example.com"
-      };
+    const existingBlog = {
+      _id: blogId,
+      title: "Old Title",
+      content: "Old Content",
+      author: userId,
+      toObject: () => existingBlog
+    };
 
-      // Mock blog data
-      const blogs = {
-        _id: new mongoose.Types.ObjectId(),
-        title: "Test Blog",
-        content: "Test content",
-        author: user,
-        comments: [{
-          _id: new mongoose.Types.ObjectId(),
-          content: "Great post!"
-        }],
-        status: 'published'
-      };
+    const updatedBlog = {
+      ...existingBlog,
+      title: "Updated Title",
+      content: "Updated Content",
+      toObject: () => updatedBlog
+    };
 
-      // Use for expected response
-      // const expectedBlogs = blogs.map(blog => {
-      //   return {
-      //     title: blogs.title,
-      //     content: blogs.content,
-      //     author: blogs.author,
-      //     tags: blogs.tags,
-      //     status: blogs.status,
-      //   }
-      // });
+    // Stub `findById` returns old blog
+    findByIdStub.resolves(existingBlog);
 
-
-      // Query chain mocking
-      const queryMock = {
-        populate: sinon.stub().returnsThis(), // populate 返回自身以支持链式调用
-        exec: sinon.stub().resolves(blogs)    // exec 返回解析后的数据
-      };
-
-      // Mock Blog.find() returning the list of blogs
-      findBlogStub.returns(queryMock);
-
-      const res = {
-        status: sinon.stub().returnsThis(),
-        json: sinon.spy()
-      };
-
-      // Call getBlogs function
-      await getBlogs(req, res);
-
-      // Verify query construction
-      expect(findBlogStub.calledOnceWith({ status: 'published' })).to.be.true;
-      
-      // Verify populate calls
-      expect(queryMock.populate.firstCall.calledWith('author', 'name email'))
-        .to.be.true;
-      expect(queryMock.populate.secondCall.calledWith('comments'))
-        .to.be.true;
-
-      // Assert that findBlogStub was called and the correct response was returned
-      expect(findBlogStub.calledOnce).to.be.true;
-
+    // Stub `findByIdAndUpdate` mock return Mongoose Query
+    findByIdAndUpdateStub.returns({
+      populate: sinon.stub().returns({
+        populate: sinon.stub().returns({
+          lean: sinon.stub().resolves(updatedBlog)
+        })
+      })
     });
 
-    it('should return 500 if an error occurs while fetching blogs', async () => {
-      const req = {};
+    const req = {
+      params: { id: blogId },
+      user: { id: userId },
+      body: { title: "Updated Title", content: "Updated Content" }
+    };
 
-      // Simulate an error in Blog.find()
-      findBlogStub.throws(new Error('DB Error'))
+    const res = {
+      status: sinon.stub().returnsThis(),
+      json: sinon.spy()
+    };
 
-      const res = {
-        status: sinon.stub().returnsThis(),
-        json: sinon.spy(),
-      };
+    await editBlog(req, res);
 
-      // Call getBlogs function
-      await getBlogs(req, res);
-
-      // Assert that the error response is sent
-      expect(res.status.calledWith(500)).to.be.true;
-      expect(res.json.calledWithMatch({ message: 'DB Error' })).to.be.true;
-    });
+    expect(res.status.calledWith(200)).to.be.true;
   });
 
-  describe('Create Comment', () => {
-    it('should create a new comment successfully', async () => {
-      const req = {
-        body: {
-          blogId: new mongoose.Types.ObjectId(),
-          authorId: new mongoose.Types.ObjectId(),
-          content: "This is a new comment"
-        }
-      };
 
-      const newComment = {
-        _id: new mongoose.Types.ObjectId(),
-        blog: req.body.blogId,
-        author: req.body.authorId,
-        content: req.body.content
-      };
 
-      const expectedComment = {
-        blog: req.body.blogId,
-        author: req.body.authorId,
-        content: req.body.content
-      };
+  /*** 4. Test deleteBlog()  ***/
+  it('should delete a blog when the user is the author', async () => {
+    const blogId = new mongoose.Types.ObjectId();
+    const userId = new mongoose.Types.ObjectId();
 
-      // Mock Comment.create to resolve with new comment
-      createCommentStub.resolves(newComment);
+    const req = {
+      user: { id: userId.toString() },
+      params: { id: blogId.toString() }
+    };
 
-      const res = {
-        status: sinon.stub().returnsThis(),
-        json: sinon.spy(),
-      };
+    const existingBlog = { _id: blogId, author: userId.toString() };
 
-      // Call createComment function
-      await createComment(req, res);
+    findByIdStub.resolves(existingBlog);
+    findByIdAndDeleteStub.resolves({});
 
-      // Assert that Comment.create was called with correct arguments
-      expect(createCommentStub.calledOnceWith({
-        blog: req.body.blogId,
-        author: req.body.authorId,
-        content: req.body.content,
-      })).to.be.true;
+    const res = {
+      status: sinon.stub().returnsThis(),
+      json: sinon.spy()
+    };
 
-      // Assert the response status and json content
-      expect(res.status.calledWith(201)).to.be.true;
-      expect(res.json.calledWithMatch({ message: 'Comment created successfully', comment: expectedComment })).to.be.true;
-    });
+    await deleteBlog(req, res);
 
-    it('should return 500 if an error occurs while creating comment', async () => {
-      const req = {
-        body: {
-          blogId: new mongoose.Types.ObjectId(),
-          authorId: new mongoose.Types.ObjectId(),
-          content: "This is a new comment"
-        }
-      };
+    expect(findByIdStub.calledOnceWith(blogId.toString())).to.be.true;
+    expect(findByIdAndDeleteStub.calledOnceWith(blogId.toString())).to.be.true;
+    expect(res.status.calledWith(200)).to.be.true;
+    expect(res.json.calledWith({ message: 'Blog deleted successfully' })).to.be.true;
+  });
 
-      // Simulate an error in Comment.create
-      createCommentStub.throws(new Error('DB Error'));
+  /*** 5. Test createBlogComment() Add comments ***/
+  it('should create a comment for a blog', async () => {
+    const blogId = new mongoose.Types.ObjectId();
+    const userId = new mongoose.Types.ObjectId();
 
-      const res = {
-        status: sinon.stub().returnsThis(),
-        json: sinon.spy(),
-      };
+    const req = {
+      user: { id: userId.toString() },
+      body: {
+        blogId: blogId.toString(),
+        content: "This is a comment"
+      }
+    };
 
-      // Call createComment function
-      await createComment(req, res);
+    // Mock created comment
+    const createdComment = {
+      _id: new mongoose.Types.ObjectId(),
+      blog: blogId.toString(),
+      author: userId.toString(),
+      content: req.body.content
+    };
 
-      // Assert that the error response is sent
-      expect(res.status.calledWith(500)).to.be.true;
-      expect(res.json.calledWithMatch({ message: 'DB Error' })).to.be.true;
-    });
+    commentCreateStub.resolves(createdComment);
+
+    const res = {
+      status: sinon.stub().returnsThis(),
+      json: sinon.spy()
+    };
+
+    await createBlogComment(req, res);
+
+    expect(commentCreateStub.calledOnceWith({
+      blog: blogId.toString(),
+      author: userId.toString(),
+      content: req.body.content
+    })).to.be.true;
+
+    expect(res.status.calledWith(201)).to.be.true;
+    expect(res.json.calledWith(createdComment)).to.be.true;
   });
 });

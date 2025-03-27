@@ -5,28 +5,38 @@ import BlogList from '../components/BlogList';
 import { useAuth } from '../context/AuthContext';
 
 const Blogs = () => {
-    const { user } = useAuth(); // 获取用户信息
+    const { user } = useAuth();
     const [blogs, setBlogs] = useState([]);
     const [editingBlog, setEditingBlog] = useState(null);
+    const [pagination, setPagination] = useState({});
 
-    // 获取博客数据
     useEffect(() => {
         const fetchBlogs = async () => {
-            if (!user) return; // 用户未登录时不执行
-
             try {
-                const response = await axiosInstance.get('/api/blogs', {
-                    headers: { Authorization: `Bearer ${user.token}` },
+                const response = await axiosInstance.get('/api/blogs');
+                const blogsData = response.data;
+                console.log(blogsData);
+
+                // Initialize pagination state
+                const initialPagination = {};
+                blogsData.forEach(blog => {
+                    initialPagination[blog._id] = {
+                        page: 1,
+                        // According to the default, load 3 to determine if there are more.
+                        hasMore: blog.comments?.length >= 3
+                    };
                 });
-                console.log('Fetched Blogs:', response.data);
-                setBlogs(response.data);
+
+                setPagination(initialPagination);
+                setBlogs(blogsData);
             } catch (error) {
                 console.error('Failed to fetch blogs:', error);
             }
         };
 
         fetchBlogs();
-    }, [user]); // 依赖 user，确保登录后才请求数据
+
+    }, [user]);
 
     return (
         <div className="container mx-auto p-6">
@@ -38,10 +48,13 @@ const Blogs = () => {
                         editingBlog={editingBlog}
                         setEditingBlog={setEditingBlog}
                     />
-                    <BlogList blogs={blogs} setBlogs={setBlogs} setEditingBlog={setEditingBlog} />
+                    <BlogList blogs={blogs} setBlogs={setBlogs} pagination={pagination} setPagination={setPagination} />
                 </>
             ) : (
-                <p className="text-center text-red-500">Please log in to manage blogs.</p>
+                <>
+                    <h1> Login to create a blog. </h1>
+                    <BlogList blogs={blogs} setBlogs={setBlogs} pagination={pagination} setPagination={setPagination} />
+                </>
             )}
         </div>
     );
