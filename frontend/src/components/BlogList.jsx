@@ -1,12 +1,9 @@
 import axiosInstance from '../axiosConfig';
 import { useAuth } from '../context/AuthContext';
 import CommentForm from './CommentForm';
-import { useState, useEffect } from 'react';
 
 const BlogList = ({ blogs, setBlogs, setEditingBlog, pagination, setPagination}) => {
     const { user } = useAuth();
-    const [expandedBlogs, setExpandedBlogs] = useState({});
-    // const [pagination, setPagination] = useState({});
 
     const handleDelete = async (id) => {
         if (!user) return alert('You must be logged in to delete a blog.');

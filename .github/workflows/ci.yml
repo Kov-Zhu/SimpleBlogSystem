@@ -81,6 +81,8 @@ jobs:
                 cd ./backend
                 touch .env
                 echo "${{ secrets.PROD }}" > .env
-        -   run: pm2 start all
+        -   run: |
+                pm2 list
+                pm2 start all
 
         -   run: pm2 restart all
