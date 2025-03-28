@@ -1,68 +1,210 @@
-# **Assignment: Full-Stack CRUD Application Development with DevOps Practices**
+# Simple Blog System
 
-## **Objective**
+N12086975 Kefu Zhu
 
-You have been provided with a starter project that includes user authentication using  **Node.js, React.js, and MongoDB**. Your task is to extend this application by implementing **CRUD (Create, Read, Update, Delete) operations** for a real-world application of your choice, while following industry best practices such as:
+## 1. Project Setup Instruction
 
-* **Project Management with JIRA**
-* **Requirement Diagram using SysML**
-* **Version Control using GitHub**
-* **CI/CD Integration for Automated Deployment**
+This is a Simple Blog System in which you can create blogs and leave comments.
 
-## **Requirements**
+To setup the project:
 
-### **1. Choose a Real-World Application**
+1. Create `.env` file in `./backend` folder.
 
-Select a meaningful use case for your CRUD operations. We will provide the list, you have to select it.
+```sh
+MONGO_URI=<MongoDB URL>
+JWT_SECRET=<same as TaskManager project>
+PORT=5001
+```
 
-### **2. Project Management with JIRA and SysML**
+2. Install all the dependence both for frontend and backend
 
-* Create a **JIRA project** and define:
-  * **Epic**
-  * **User Stories** (features required in your app)
-  * **Child issues & Subtasks** (breaking down development work)
-  * **Sprint Planning** (organizing work into milestones)
-* Document your JIRA **board URL** in the project README.
-* Draw a requirements diagram
+Goto `./frontend` folder, run
 
-### **3. Backend Development (Node.js + Express + MongoDB)**
+```bash
+npm install
+```
 
-* Create a user-friendly interface to interact with your API (Some portion developed, follow task manager app)).
-* Implement **forms** for adding and updating records.
-* Display data using  **tables, cards, or lists (Follow how we showed data in task manager app)**
+Goto `./frontend` folder, run
 
-### **4. Frontend Development (React.js)**
+```bash
+npm install
+```
 
-* Create a user-friendly interface to interact with your API (**Some portion developed, follow task manager app)**.
-* Implement **forms** for adding, showing, deleting and updating records (CRUD).
-* Display data using  **tables, cards, or lists (Follow how we showed data in task manager app)**
+3. If you want to run locally, goto `./frontend/axiosConfig.jsx` file, modify `baseURL`
 
-### **5. Authentication & Authorization**
+```jsx
+import axios from 'axios';
 
-* Ensure **only authenticated users** can access and perform CRUD operations. (Already developed in your project)
-* Use **JWT (JSON Web Tokens)** for user authentication (Use the task manager one from .env file).
+const axiosInstance = axios.create({
+  baseURL: 'http://localhost:5001', // local !!Use this one
+  // baseURL: 'http://13.211.56.43:5001', // live
+  headers: { 'Content-Type': 'application/json' },
+});
 
-### **6. GitHub Version Control & Branching Strategy**
+export default axiosInstance;
 
-* Use **GitHub for version control** and maintain:
-  * `main` branch (stable production-ready code)
-  * Feature branches (`feature/xyz`) for each new functionality
-* Follow proper **commit messages** and  **pull request (PR) reviews** .
+```
 
-### **7. CI/CD Pipeline Setup**
+4. use `npm test` to run a test to check if all dependece are install correctly
 
-* Implement a **CI/CD pipeline using GitHub Actions** to:
-  * Automatically **run tests** on every commit/pull request (Optional).
-  * Deploy the **backend** to **AWS** .
-  * Deploy the **frontend** to **AWS**.
-* Document your  **CI/CD workflow in the README** .
+5. `npm run dev` to run this project. Goto `http://localhost:3000/blogs`
 
-## **Submission Requirements**
 
-* **JIRA Project Board URL** (user stories ).
-* **Requirment diagram** (Using project features)
-* **GitHub Repository** (`backend/` and `frontend/`).
-* **README.md** with:
 
-  * Project setup instructions.
-  * CI/CD pipeline details.
+## 2. CI/CD Pipline Details
+
+```yml
+name: CI
+
+on:
+    push:
+        branches:
+            - main
+    pull_request:
+        branches:
+            - main
+```
+
+It **triggers** when:
+
+* A **push** is made to the `main` branch.
+* A **pull request** is opened against the `main` branch.
+
+```yml
+jobs:
+    test:
+        name: Run Tests
+        runs-on: self-hosted
+```
+
+A job named "Run Tests" is defined.
+
+It runs on a self-hosted runner, meaning it's not executed on GitHub's servers but on a custom server.
+
+```yml
+        strategy:
+            matrix:
+                node-version: [22] # Test on Node.js versions == 22
+```
+
+**Matrix strategy** allows testing on multiple Node.js versions.
+
+Here, it's set to test **only Node.js v22**.
+
+```yml
+        environment: MONGO_URI
+```
+
+* Specifies that the `MONGO_URI` secret (MongoDB connection string) is needed for this job.
+
+```yml
+        steps:
+        -   name: Checkout Code
+            uses: actions/checkout@v3
+```
+
+* Uses `actions/checkout@v3` to fetch the repository code into the runner.
+
+```yml
+        -   name: Set up Node.js
+            uses: actions/setup-node@v3
+            with:
+                node-version: ${{ matrix.node-version }}
+
+```
+
+* Uses `actions/setup-node@v3` to **install Node.js v22** (from the matrix configuration).
+
+```yml
+        -   name: Cache npm dependencies
+            uses: actions/cache@v3
+            with:
+                path: ~/.npm
+                key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}
+                restore-keys: |
+                            ${{ runner.os }}-npm-
+```
+
+* Uses `actions/cache@v3` to **cache npm dependencies** to speed up future installs.
+* It caches `~/.npm` based on the hash of `package-lock.json`.
+* If an exact match isn’t found, it restores a previously cached version.
+
+```yml
+        -   name: Print Env Secret
+
+            env:
+                MONGO_URI: ${{ secrets.MONGO_URI }}
+                JWT_SECRET: ${{ secrets.JWT_SECRET }}
+                PORT: ${{ secrets.PORT }}
+            run: | 
+                echo "Secret 1 is: $MONGO_URI"
+                echo "Secret 2 is: $JWT_SECRET"
+                echo "Secret 3 is: $PORT"
+```
+
+* Retrieves **secrets** (`MONGO_URI`, `JWT_SECRET`, `PORT`) from GitHub's secret storage.
+
+```yml
+         -   run: pm2 stop all
+```
+
+* Stops all currently running **PM2-managed** Node.js processes. This is becuase we will setup and rebuild the project later.
+
+```yml
+        # Install dependencies for backend
+        -   name: Install Backend Dependencies
+            working-directory: ./backend
+            run: |
+                node --version
+                npm install -g yarn
+                yarn install
+
+        # Install dependencies for frontend
+        -   name: Install Frontend Dependencies
+            working-directory: ./frontend
+            run: |
+                df -h
+                sudo rm -rf ./build
+                yarn install
+                yarn run build
+```
+
+* Use `yarn` to install all the dependence for backand and frontend
+* `yarn build` to build the frontend `react` project
+
+```yml
+        # Run backend tests
+        -   name: Run Backend Tests
+            env:
+                MONGO_URI: ${{ secrets.MONGO_URI }}
+                JWT_SECRET: ${{ secrets.JWT_SECRET }}
+                PORT: ${{ secrets.PORT }}
+            working-directory: ./backend
+            run: npm test
+```
+
+* run backend test defined in `./backend/test/blog.test.js`
+
+```yml
+        -   run: npm ci
+        -   run: | 
+                cd ./backend
+                touch .env
+                echo "${{ secrets.PROD }}" > .env
+```
+
+* Moves to `./backend`.
+
+* Creates a `.env` file with production secrets.
+
+```yml
+        -   run: |
+                pm2 list
+                pm2 start all
+
+        -   run: pm2 restart all
+```
+
+* Lists all PM2 processes (`pm2 list`).
+
+* Starts all PM2-managed applications (`pm2 start all`).
