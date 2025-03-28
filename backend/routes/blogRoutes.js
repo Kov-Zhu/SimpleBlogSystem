@@ -1,5 +1,5 @@
 const express = require('express');
-const { addBlog, getBlogs, editBlog, deleteBlog, getBlogComments, createBlogComment } = require('../controllers/blogController');
+const { addBlog, getBlogs, editBlog, deleteBlog, getBlogComments, createBlogComment, deleteComment } = require('../controllers/blogController');
 const { protect } = require('../middleware/authMiddleware');
 const { route } = require('./authRoutes');
 const router = express.Router();
@@ -17,9 +17,11 @@ router.put('/:id', protect, editBlog);
 router.delete('/:id', protect, deleteBlog);
 
 // Get Blog Comments
-router.get('/:blogId/comments', getBlogComments);
+router.get('/comments/:blogId', getBlogComments);
 
 // Create Blog Comments
-router.post('/:blogId/comments', protect, createBlogComment);
+router.post('/comments/:blogId', protect, createBlogComment);
+
+router.delete('/comments/:commentId', protect, deleteComment);
 
 module.exports = router;

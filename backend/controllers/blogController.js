@@ -67,7 +67,6 @@ const editBlog = async (req, res) => {
 };
 
 const deleteBlog = async (req, res) => {
-    console.log("Blog deleting");
     try {
         const blog = await Blog.findById(req.params.id);
 
@@ -127,5 +126,27 @@ const getBlogComments = async (req, res) => {
     }
 };
 
+const deleteComment = async (req, res) => {
+    try {
+        const comment = await Comment.findById(req.params.commentId);
+        if (!comment) {
+            return res.status(404).json({ message: 'Comment not found' });
+        }
 
-module.exports = { getBlogs, addBlog, editBlog, deleteBlog, createBlogComment, getBlogComments };
+        // Make sure that only comment authors or bloggers can delete comments.
+        if (comment.author.toString() !== req.user.id) {
+            return res.status(403).json({ message: 'Unauthorized' });
+        }
+
+        await Comment.findByIdAndDelete(req.params.commentId);
+
+        await Blog.findByIdAndUpdate(comment.blog, { $pull: { comments: comment._id } });
+
+        res.json({ message: 'Comment deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+
+module.exports = { getBlogs, addBlog, editBlog, deleteBlog, createBlogComment, getBlogComments, deleteComment };

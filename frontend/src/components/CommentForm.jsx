@@ -12,7 +12,7 @@ const CommentForm = ({ blogId, onCommentAdded }) => {
     if (!user || !content.trim()) return;
 
     try {
-      const response = await axiosInstance.post(`/api/blogs/${blogId}/comments`, {
+      const response = await axiosInstance.post(`/api/blogs/comments/${blogId}`, {
         blogId,
         content
       }, {

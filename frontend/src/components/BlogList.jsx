@@ -2,7 +2,7 @@ import axiosInstance from '../axiosConfig';
 import { useAuth } from '../context/AuthContext';
 import CommentForm from './CommentForm';
 
-const BlogList = ({ blogs, setBlogs, setEditingBlog, pagination, setPagination}) => {
+const BlogList = ({ blogs, setBlogs, setEditingBlog, pagination, setPagination }) => {
     const { user } = useAuth();
 
     const handleDelete = async (id) => {
@@ -22,14 +22,14 @@ const BlogList = ({ blogs, setBlogs, setEditingBlog, pagination, setPagination})
     const loadMoreComments = async (blogId) => {
         try {
             const nextPage = (pagination[blogId]?.page || 0) + 1;
-            const response = await axiosInstance.get(`/api/blogs/${blogId}/comments?page=${nextPage}`);
+            const response = await axiosInstance.get(`/api/blogs/comments/${blogId}?page=${nextPage}`);
 
             // Update pagination status
             setPagination(prev => ({
                 ...prev,
                 [blogId]: {
                     page: nextPage,
-                    hasMore: nextPage < response.data.pages // 使用后端返回的总页数
+                    hasMore: nextPage < response.data.pages
                 }
             }));
 
@@ -69,6 +69,30 @@ const BlogList = ({ blogs, setBlogs, setEditingBlog, pagination, setPagination})
         }));
     };
 
+    const handleDeleteComment = async (blogId, commentId) => {
+        if (!user) return alert('You must be logged in to delete a comment.');
+
+        try {
+            await axiosInstance.delete(`/api/blogs/comments/${commentId}`, {
+                headers: { Authorization: `Bearer ${user.token}` },
+            });
+
+            setBlogs(blogs.map(blog => {
+                if (blog._id === blogId) {
+                    return {
+                        ...blog,
+                        comments: blog.comments.filter(comment => comment._id !== commentId),
+                    };
+                }
+                return blog;
+            }));
+
+            alert('Comment deleted successfully.');
+        } catch (error) {
+            alert('Failed to delete comment.');
+        }
+    };
+
     return (
         <div className="bg-white p-6 shadow-md rounded">
             {blogs.map(blog => (
@@ -97,13 +121,27 @@ const BlogList = ({ blogs, setBlogs, setEditingBlog, pagination, setPagination})
                         {/* List of comments */}
                         {blog.comments?.map(comment => (
                             <div key={comment._id} className="bg-gray-50 p-3 rounded mb-2">
-                                <div className="flex items-center mb-1">
-                                    <span className="font-medium">{comment.author.name}</span>
-                                    <span className="text-gray-500 text-sm ml-2">
-                                        {new Date(comment.createdAt).toLocaleDateString()}
-                                    </span>
+                                <div className="flex items-center justify-between">
+                                    {/* Left side */}
+                                    <div className="flex items-center">
+                                        <span className="font-medium">{comment.author.name}</span>
+                                        <span className="text-gray-500 text-sm ml-2">
+                                            {new Date(comment.createdAt).toLocaleDateString()}
+                                        </span>
+                                    </div>
+
+                                    {/* Right side */}
+                                    {user && (comment.author._id === user.id) && (
+                                        <button
+                                            className="bg-red-500 text-white px-2 py-1 rounded text-sm"
+                                            onClick={() => handleDeleteComment(blog._id, comment._id)}
+                                        >
+                                            Delete
+                                        </button>
+                                    )}
                                 </div>
-                                <p className="text-gray-700">{comment.content}</p>
+
+                                <p className="text-gray-700 mt-1">{comment.content}</p>
                             </div>
                         ))}
 
