@@ -6,9 +6,9 @@ N12086975 Kefu Zhu
 
 This is a Simple Blog System in which you can create blogs and leave comments.
 
-To setup the project:
+**To setup the project locally**:
 
-1. Create `.env` file in `./backend` folder.
+1. Create `.env` file in `./backend` folder and filling them.
 
 ```sh
 MONGO_URI=<MongoDB URL>
@@ -42,12 +42,33 @@ const axiosInstance = axios.create({
 });
 
 export default axiosInstance;
-
 ```
 
 4. use `npm test` to run a test to check if all dependece are install correctly
+5. `npm run dev` to run this project. Goto `http://localhost:3000/blogs` (local)
 
-5. `npm run dev` to run this project. Goto `http://localhost:3000/blogs`
+**To setup remotely**:
+
+If run remotely, the CI/CD will automatically build the whole project and run the server.
+
+To build remote manually:
+
+First, clone the Github repo to remote server (AWS instance).
+
+```bash
+git clone https://github.com/Kov-Zhu/SimpleBlogSystem.git
+```
+
+Seceond, build the project.
+
+ * Backend:
+   1. Install all the dependence. Goto `./backend` run `npm install`
+   2. Use pm2 to run the backend server `pm2 start "npm run start" --name "backend"`
+ * Frontend:
+   1. Install all the dependence. Goto `./frontend` run `npm install`
+   2. Build the react project `npm run build`
+   3. Use pm2 to run the frontend server `pm2 serve build/ 3000 --name "Frontend" --spa`
+ * After that, run `pm2 status` to check if everything works properly.
 
 
 
